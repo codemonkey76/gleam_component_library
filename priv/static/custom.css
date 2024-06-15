@@ -1,0 +1,34 @@
+.box {
+  width: 100px;
+  height: 100px;
+  background-color: red;
+  transition: all 2s ease;
+  opacity: 1;
+}
+
+.enter {
+  /* Applied during the entire entering phase */
+}
+
+.enter-start {
+  /* Added before element is inserted */
+  opacity: 0;
+}
+
+.enter-end {
+  /* Added one frame after element is inserted */
+  opacity: 1;
+}
+
+.leave {
+  /* Applied during the entire leaving phase */
+}
+
+.leave-end {
+  /* Added one frame after a leavign transition is triggered */
+  opacity: 0;
+}
+
+.hidden: {
+  display:none;
+}
