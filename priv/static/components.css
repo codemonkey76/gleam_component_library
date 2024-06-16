@@ -869,6 +869,10 @@ video {
   transition-duration: 200ms;
 }
 
+.duration-\[2s\] {
+  transition-duration: 2s;
+}
+
 .ease-in {
   transition-timing-function: cubic-bezier(0.4, 0, 1, 1);
 }

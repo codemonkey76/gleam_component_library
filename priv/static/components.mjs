@@ -114,6 +114,24 @@ function makeError(variant, module, line, fn, message, extra) {
 var None = class extends CustomType {
 };
 
+// build/dev/javascript/gleam_stdlib/gleam/list.mjs
+function fold(loop$list, loop$initial, loop$fun) {
+  while (true) {
+    let list = loop$list;
+    let initial = loop$initial;
+    let fun = loop$fun;
+    if (list.hasLength(0)) {
+      return initial;
+    } else {
+      let x = list.head;
+      let rest$1 = list.tail;
+      loop$list = rest$1;
+      loop$initial = fun(initial, x);
+      loop$fun = fun;
+    }
+  }
+}
+
 // build/dev/javascript/gleam_stdlib/gleam/dynamic.mjs
 function from(a2) {
   return identity(a2);
@@ -130,6 +148,14 @@ var MIN_ARRAY_NODE = BUCKET_SIZE / 4;
 // build/dev/javascript/gleam_stdlib/gleam_stdlib.mjs
 function identity(x) {
   return x;
+}
+function console_log(term) {
+  console.log(term);
+}
+
+// build/dev/javascript/gleam_stdlib/gleam/io.mjs
+function println(string3) {
+  return console_log(string3);
 }
 
 // build/dev/javascript/gleam_stdlib/gleam/bool.mjs
@@ -148,6 +174,11 @@ var Effect = class extends CustomType {
     this.all = all;
   }
 };
+function from2(effect) {
+  return new Effect(toList([(dispatch, _) => {
+    return effect(dispatch);
+  }]));
+}
 function none() {
   return new Effect(toList([]));
 }
@@ -179,10 +210,34 @@ var Attribute = class extends CustomType {
     this.as_property = as_property;
   }
 };
+var Event = class extends CustomType {
+  constructor(x0, x1) {
+    super();
+    this[0] = x0;
+    this[1] = x1;
+  }
+};
 
 // build/dev/javascript/lustre/lustre/attribute.mjs
 function attribute(name, value) {
   return new Attribute(name, from(value), false);
+}
+function on(name, handler) {
+  return new Event("on" + name, handler);
+}
+function style(properties) {
+  return attribute(
+    "style",
+    fold(
+      properties,
+      "",
+      (styles, _use1) => {
+        let name$1 = _use1[0];
+        let value$1 = _use1[1];
+        return styles + name$1 + ":" + value$1 + ";";
+      }
+    )
+  );
 }
 function class$(name) {
   return attribute("class", name);
@@ -325,7 +380,7 @@ function createElementNode({ prev, next, dispatch, stack }) {
   const prevHandlers = canMorph ? new Set(handlersForEl.keys()) : null;
   const prevAttributes = canMorph ? new Set(Array.from(prev.attributes, (a2) => a2.name)) : null;
   let className = null;
-  let style = null;
+  let style2 = null;
   let innerHTML = null;
   for (const attr of next.attrs) {
     const name = attr[0];
@@ -355,7 +410,7 @@ function createElementNode({ prev, next, dispatch, stack }) {
     } else if (name === "class") {
       className = className === null ? value : className + " " + value;
     } else if (name === "style") {
-      style = style === null ? value : style + value;
+      style2 = style2 === null ? value : style2 + value;
     } else if (name === "dangerous-unescaped-html") {
       innerHTML = value;
     } else {
@@ -372,8 +427,8 @@ function createElementNode({ prev, next, dispatch, stack }) {
     if (canMorph)
       prevAttributes.delete("class");
   }
-  if (style !== null) {
-    el2.setAttribute("style", style);
+  if (style2 !== null) {
+    el2.setAttribute("style", style2);
     if (canMorph)
       prevAttributes.delete("style");
   }
@@ -688,15 +743,6 @@ var NotABrowser = class extends CustomType {
 function application(init3, update3, view2) {
   return new App(init3, update3, view2, new None());
 }
-function simple(init3, update3, view2) {
-  let init$1 = (flags) => {
-    return [init3(flags), none()];
-  };
-  let update$1 = (model, msg) => {
-    return [update3(model, msg), none()];
-  };
-  return application(init$1, update$1, view2);
-}
 function start3(app, selector, flags) {
   return guard(
     !is_browser(),
@@ -733,6 +779,21 @@ function button(attrs, children) {
   return element("button", attrs, children);
 }
 
+// build/dev/javascript/components/components/types.mjs
+var Model = class extends CustomType {
+  constructor(is_entering, entered, is_leaving, is_hidden) {
+    super();
+    this.is_entering = is_entering;
+    this.entered = entered;
+    this.is_leaving = is_leaving;
+    this.is_hidden = is_hidden;
+  }
+};
+var UserClickedProducts = class extends CustomType {
+};
+var TransitionStarted = class extends CustomType {
+};
+
 // build/dev/javascript/lustre/lustre/element/svg.mjs
 var namespace = "http://www.w3.org/2000/svg";
 function svg(attrs, children) {
@@ -740,6 +801,16 @@ function svg(attrs, children) {
 }
 function path(attrs) {
   return namespaced(namespace, "path", attrs, toList([]));
+}
+
+// build/dev/javascript/lustre/lustre/event.mjs
+function on2(name, handler) {
+  return on(name, handler);
+}
+function on_click(msg) {
+  return on2("click", (_) => {
+    return new Ok(msg);
+  });
 }
 
 // build/dev/javascript/components/components/logos.mjs
@@ -904,6 +975,7 @@ function hamburger2() {
 function product_button() {
   return button(
     toList([
+      on_click(new UserClickedProducts()),
       type_("button"),
       class$(
         "flex items-center gap-x-1 text-sm font-semibold leading-6 text-gray-900"
@@ -996,9 +1068,36 @@ function flyout_footer() {
     ])
   );
 }
-function product_flyout() {
+function product_flyout(model) {
+  let enter = "transition ease-out duration-[2s]";
+  let enter_from = "opacity-0 translate-y-1";
+  let enter_to = "opacity-100 translate-y-0";
+  let leave = "transition ease-in duration-150";
+  let leave_from = "opacity-100 translate-y-0";
+  let leave_to = "opacity-0 translate-y-1";
+  let $ = (() => {
+    let $1 = model.is_entering;
+    let $2 = model.entered;
+    if ($1 && !$2) {
+      return [enter + " " + enter_from, false];
+    } else if ($1 && $2) {
+      return [enter + " " + enter_to, false];
+    } else {
+      return ["", true];
+    }
+  })();
+  let styles = $[0];
+  let hidden = $[1];
   return div(
     toList([
+      class$(styles),
+      (() => {
+        if (hidden) {
+          return style(toList([["display", "none"]]));
+        } else {
+          return style(toList([["", ""]]));
+        }
+      })(),
       class$(
         "absolute -left-8 top-full z-10 mt-3 w-screen max-w-md overflow-hidden rounded-3xl bg-white shadow-lg ring-1 ring-gray-900/5"
       )
@@ -1009,13 +1108,13 @@ function product_flyout() {
     ])
   );
 }
-function menu() {
+function menu(model) {
   return div(
     toList([class$("hidden lg:flex lg:gap-x-12")]),
     toList([
       div(
         toList([class$("relative")]),
-        toList([product_button(), product_flyout()])
+        toList([product_button(), product_flyout(model)])
       ),
       a(
         toList([
@@ -1071,50 +1170,50 @@ function menu() {
     ])
   );
 }
-function nav2() {
+function nav2(model) {
   return nav(
     toList([
       class$("mx-auto flex max-w-7xl items-center justify-between p-6 lg:px-8"),
       attribute("aria-label", "Global")
     ]),
-    toList([logo(), hamburger2(), menu(), login_button()])
+    toList([logo(), hamburger2(), menu(model), login_button()])
   );
 }
-function header2() {
-  return header(toList([class$("bg-white")]), toList([nav2()]));
+function header2(model) {
+  return header(toList([class$("bg-white")]), toList([nav2(model)]));
 }
 
 // build/dev/javascript/components/components.mjs
-var Model = class extends CustomType {
-  constructor(is_entering, is_leaving, is_hidden) {
-    super();
-    this.is_entering = is_entering;
-    this.is_leaving = is_leaving;
-    this.is_hidden = is_hidden;
-  }
-};
 function init2(_) {
-  return new Model(false, false, false);
+  return [new Model(false, false, false, false), none()];
+}
+function start_transition() {
+  return from2(
+    (dispatch) => {
+      let _pipe = new TransitionStarted();
+      return dispatch(_pipe);
+    }
+  );
 }
 function update2(model, msg) {
-  let $ = model.is_entering || model.is_hidden;
-  if ($) {
-    return model.withFields({ is_hidden: false, is_entering: true });
+  if (msg instanceof UserClickedProducts) {
+    println("User Clicked Products");
+    return [model.withFields({ is_entering: true }), start_transition()];
   } else {
-    return model.withFields({ is_leaving: true });
+    return [model.withFields({ entered: true }), none()];
   }
 }
-function view(_) {
-  return div(toList([class$("bg-gray-900")]), toList([header2()]));
+function view(model) {
+  return div(toList([class$("bg-gray-900")]), toList([header2(model)]));
 }
 function main() {
-  let app = simple(init2, update2, view);
+  let app = application(init2, update2, view);
   let $ = start3(app, "#app", void 0);
   if (!$.isOk()) {
     throw makeError(
       "assignment_no_match",
       "components",
-      11,
+      14,
       "main",
       "Assignment pattern did not match",
       { value: $ }

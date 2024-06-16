@@ -4,6 +4,7 @@ import lustre/attribute.{alt, attribute, class, href, src, style, type_}
 import lustre/element.{text}
 import lustre/element/html.{a, button, div, img, p, span}
 import lustre/element/svg.{path, svg}
+import lustre/event
 
 pub fn header(model: Model) {
   html.header([class("bg-white")], [nav(model)])
@@ -49,6 +50,7 @@ pub fn hamburger() {
 pub fn product_button() {
   button(
     [
+      event.on_click(types.UserClickedProducts),
       type_("button"),
       class(
         "flex items-center gap-x-1 text-sm font-semibold leading-6 text-gray-900",
@@ -94,13 +96,19 @@ pub fn analytics_text() {
 }
 
 pub fn product_flyout(model: Model) {
-  let enter = "transition ease-out duration-200"
+  let enter = "transition ease-out duration-[2s]"
   let enter_from = "opacity-0 translate-y-1"
   let enter_to = "opacity-100 translate-y-0"
 
   let leave = "transition ease-in duration-150"
   let leave_from = "opacity-100 translate-y-0"
   let leave_to = "opacity-0 translate-y-1"
+
+  let #(styles, hidden) = case model.is_entering, model.entered {
+    True, False -> #(enter <> " " <> enter_from, False)
+    True, True -> #(enter <> " " <> enter_to, False)
+    _, _ -> #("", True)
+  }
   // <!--
   //   'Product' flyout menu, show/hide based on flyout menu state.
   //
@@ -113,7 +121,11 @@ pub fn product_flyout(model: Model) {
   // -->
   div(
     [
-      style([#("display", "none")]),
+      class(styles),
+      case hidden {
+        True -> style([#("display", "none")])
+        False -> style([#("", "")])
+      },
       class(
         "absolute -left-8 top-full z-10 mt-3 w-screen max-w-md overflow-hidden rounded-3xl bg-white shadow-lg ring-1 ring-gray-900/5",
       ),
