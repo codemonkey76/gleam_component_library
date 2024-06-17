@@ -43,11 +43,16 @@ pub fn update(model: Model, msg: Msg) -> #(Model, Effect(Msg)) {
 }
 
 fn start_transition() -> Effect(Msg) {
-  io.println("start_transition()")
-  use dispatch <- effect.from
-  use _ts <- window.request_animation_frame
-  io.println("Request animation_frame")
-  dispatch(TransitionStarted)
+  effect.from(fn(dispatch) {
+    io.println("start_transition()")
+    window.request_animation_frame(do_something)
+
+    dispatch(TransitionStarted)
+  })
+}
+
+fn do_something(_timestamp: Float) {
+  io.println("doing something")
 }
 
 pub fn view(model: Model) -> element.Element(Msg) {
