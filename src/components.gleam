@@ -3,7 +3,6 @@ import components/types.{
 }
 import components/ui
 import components/window
-import gleam/io
 import lustre
 import lustre/attribute.{class}
 import lustre/effect.{type Effect}
@@ -19,40 +18,70 @@ pub fn main() {
 
 fn init(_flags) -> #(Model, Effect(Msg)) {
   #(
-    Model(
-      is_entering: False,
-      entered: False,
-      is_leaving: False,
-      is_hidden: False,
-    ),
+    Model(product_transition: types.Transition(
+      direction: types.Entering,
+      transitioning: False,
+      complete: False,
+      enter_classes: types.TransitionClasses(
+        all: "transition ease-out duration-300",
+        from: "opacity-0 translate-y-1",
+        to: "opacity-100 translate-y-0",
+      ),
+      leave_classes: types.TransitionClasses(
+        all: "transition ease-in duration-150",
+        from: "opacity-100 translate-y-0",
+        to: "opacity-0 translate-y-1",
+      ),
+    )),
     effect.none(),
   )
 }
 
 pub fn update(model: Model, msg: Msg) -> #(Model, Effect(Msg)) {
   case msg {
-    UserClickedProducts -> {
-      io.println("User clicked products")
-      #(Model(..model, is_entering: True), start_transition())
-    }
+    UserClickedProducts ->
+      case model.product_transition {
+        types.Transition(direction: types.Entering, ..) -> #(
+          Model(
+            ..model,
+            product_transition: types.Transition(
+              ..model.product_transition,
+              direction: types.Leaving,
+            ),
+          ),
+          start_transition(),
+        )
+        types.Transition(direction: types.Leaving, ..) -> #(
+          Model(
+            ..model,
+            product_transition: types.Transition(
+              ..model.product_transition,
+              direction: types.Entering,
+            ),
+          ),
+          start_transition(),
+        )
+      }
     TransitionStarted -> {
-      io.println("Transition started")
-      #(Model(..model, entered: True), effect.none())
+      #(
+        Model(
+          ..model,
+          product_transition: types.Transition(
+            ..model.product_transition,
+            transitioning: True,
+          ),
+        ),
+        effect.none(),
+      )
     }
   }
 }
 
 fn start_transition() -> Effect(Msg) {
-  effect.from(fn(dispatch) {
-    io.println("start_transition()")
-    window.request_animation_frame(do_something)
-
-    dispatch(TransitionStarted)
-  })
-}
-
-fn do_something(_timestamp: Float) {
-  io.println("doing something")
+  use dispatch <- effect.from
+  use _ts <- window.request_animation_frame
+  TransitionStarted
+  |> dispatch
 }
 
 pub fn view(model: Model) -> element.Element(Msg) {

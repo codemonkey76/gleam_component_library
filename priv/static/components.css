@@ -865,12 +865,8 @@ video {
   transition-duration: 150ms;
 }
 
-.duration-200 {
-  transition-duration: 200ms;
-}
-
-.duration-\[2s\] {
-  transition-duration: 2s;
+.duration-300 {
+  transition-duration: 300ms;
 }
 
 .ease-in {

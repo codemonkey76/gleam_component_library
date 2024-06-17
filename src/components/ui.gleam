@@ -95,37 +95,11 @@ pub fn analytics_text() {
   ])
 }
 
-pub fn product_flyout(model: Model) {
-  let enter = "transition ease-out duration-[2s]"
-  let enter_from = "opacity-0 translate-y-1"
-  let enter_to = "opacity-100 translate-y-0"
-
-  let leave = "transition ease-in duration-150"
-  let leave_from = "opacity-100 translate-y-0"
-  let leave_to = "opacity-0 translate-y-1"
-
-  let #(styles, hidden) = case model.is_entering, model.entered {
-    True, False -> #(enter <> " " <> enter_from, False)
-    True, True -> #(enter <> " " <> enter_to, False)
-    _, _ -> #("", True)
-  }
-  // <!--
-  //   'Product' flyout menu, show/hide based on flyout menu state.
-  //
-  //   Entering: "transition ease-out duration-200"
-  //     From: "opacity-0 translate-y-1"
-  //     To: "opacity-100 translate-y-0"
-  //   Leaving: "transition ease-in duration-150"
-  //     From: "opacity-100 translate-y-0"
-  //     To: "opacity-0 translate-y-1"
-  // -->
+pub fn product_flyout(transition: types.Transition) {
+  let classes = types.get_classes(transition)
   div(
     [
-      class(styles),
-      case hidden {
-        True -> style([#("display", "none")])
-        False -> style([#("", "")])
-      },
+      class(classes),
       class(
         "absolute -left-8 top-full z-10 mt-3 w-screen max-w-md overflow-hidden rounded-3xl bg-white shadow-lg ring-1 ring-gray-900/5",
       ),
@@ -136,7 +110,10 @@ pub fn product_flyout(model: Model) {
 
 pub fn menu(model: Model) {
   div([class("hidden lg:flex lg:gap-x-12")], [
-    div([class("relative")], [product_button(), product_flyout(model)]),
+    div([class("relative")], [
+      product_button(),
+      product_flyout(model.product_transition),
+    ]),
     a([href("#"), class("text-sm font-semibold leading-6 text-gray-900")], [
       text("Features"),
     ]),

@@ -114,29 +114,6 @@ function makeError(variant, module, line, fn, message, extra) {
 var None = class extends CustomType {
 };
 
-// build/dev/javascript/gleam_stdlib/gleam/list.mjs
-function fold(loop$list, loop$initial, loop$fun) {
-  while (true) {
-    let list = loop$list;
-    let initial = loop$initial;
-    let fun = loop$fun;
-    if (list.hasLength(0)) {
-      return initial;
-    } else {
-      let x = list.head;
-      let rest$1 = list.tail;
-      loop$list = rest$1;
-      loop$initial = fun(initial, x);
-      loop$fun = fun;
-    }
-  }
-}
-
-// build/dev/javascript/gleam_stdlib/gleam/dynamic.mjs
-function from(a2) {
-  return identity(a2);
-}
-
 // build/dev/javascript/gleam_stdlib/dict.mjs
 var tempDataView = new DataView(new ArrayBuffer(8));
 var SHIFT = 5;
@@ -149,13 +126,10 @@ var MIN_ARRAY_NODE = BUCKET_SIZE / 4;
 function identity(x) {
   return x;
 }
-function console_log(term) {
-  console.log(term);
-}
 
-// build/dev/javascript/gleam_stdlib/gleam/io.mjs
-function println(string3) {
-  return console_log(string3);
+// build/dev/javascript/gleam_stdlib/gleam/dynamic.mjs
+function from(a2) {
+  return identity(a2);
 }
 
 // build/dev/javascript/gleam_stdlib/gleam/bool.mjs
@@ -224,20 +198,6 @@ function attribute(name, value) {
 }
 function on(name, handler) {
   return new Event("on" + name, handler);
-}
-function style(properties) {
-  return attribute(
-    "style",
-    fold(
-      properties,
-      "",
-      (styles, _use1) => {
-        let name$1 = _use1[0];
-        let value$1 = _use1[1];
-        return styles + name$1 + ":" + value$1 + ";";
-      }
-    )
-  );
 }
 function class$(name) {
   return attribute("class", name);
@@ -781,18 +741,54 @@ function button(attrs, children) {
 
 // build/dev/javascript/components/components/types.mjs
 var Model = class extends CustomType {
-  constructor(is_entering, entered, is_leaving, is_hidden) {
+  constructor(product_transition) {
     super();
-    this.is_entering = is_entering;
-    this.entered = entered;
-    this.is_leaving = is_leaving;
-    this.is_hidden = is_hidden;
+    this.product_transition = product_transition;
   }
 };
 var UserClickedProducts = class extends CustomType {
 };
 var TransitionStarted = class extends CustomType {
 };
+var Transition = class extends CustomType {
+  constructor(direction, complete, transitioning, enter_classes, leave_classes) {
+    super();
+    this.direction = direction;
+    this.complete = complete;
+    this.transitioning = transitioning;
+    this.enter_classes = enter_classes;
+    this.leave_classes = leave_classes;
+  }
+};
+var Entering = class extends CustomType {
+};
+var Leaving = class extends CustomType {
+};
+var TransitionClasses = class extends CustomType {
+  constructor(all, from3, to) {
+    super();
+    this.all = all;
+    this.from = from3;
+    this.to = to;
+  }
+};
+function get_classes(transition) {
+  if (transition instanceof Transition && transition.direction instanceof Entering) {
+    let $ = transition.complete;
+    if (!$) {
+      return transition.enter_classes.all + " " + transition.enter_classes.from;
+    } else {
+      return transition.enter_classes.all + " " + transition.enter_classes.to;
+    }
+  } else {
+    let $ = transition.complete;
+    if (!$) {
+      return transition.leave_classes.all + " " + transition.leave_classes.from;
+    } else {
+      return transition.leave_classes.all + " " + transition.leave_classes.to;
+    }
+  }
+}
 
 // build/dev/javascript/lustre/lustre/element/svg.mjs
 var namespace = "http://www.w3.org/2000/svg";
@@ -1068,36 +1064,11 @@ function flyout_footer() {
     ])
   );
 }
-function product_flyout(model) {
-  let enter = "transition ease-out duration-[2s]";
-  let enter_from = "opacity-0 translate-y-1";
-  let enter_to = "opacity-100 translate-y-0";
-  let leave = "transition ease-in duration-150";
-  let leave_from = "opacity-100 translate-y-0";
-  let leave_to = "opacity-0 translate-y-1";
-  let $ = (() => {
-    let $1 = model.is_entering;
-    let $2 = model.entered;
-    if ($1 && !$2) {
-      return [enter + " " + enter_from, false];
-    } else if ($1 && $2) {
-      return [enter + " " + enter_to, false];
-    } else {
-      return ["", true];
-    }
-  })();
-  let styles = $[0];
-  let hidden = $[1];
+function product_flyout(transition) {
+  let classes = get_classes(transition);
   return div(
     toList([
-      class$(styles),
-      (() => {
-        if (hidden) {
-          return style(toList([["display", "none"]]));
-        } else {
-          return style(toList([["", ""]]));
-        }
-      })(),
+      class$(classes),
       class$(
         "absolute -left-8 top-full z-10 mt-3 w-screen max-w-md overflow-hidden rounded-3xl bg-white shadow-lg ring-1 ring-gray-900/5"
       )
@@ -1114,7 +1085,7 @@ function menu(model) {
     toList([
       div(
         toList([class$("relative")]),
-        toList([product_button(), product_flyout(model)])
+        toList([product_button(), product_flyout(model.product_transition)])
       ),
       a(
         toList([
@@ -1183,24 +1154,77 @@ function header2(model) {
   return header(toList([class$("bg-white")]), toList([nav2(model)]));
 }
 
+// build/dev/javascript/components/window_ffi.mjs
+function requestAnimationFrame(callback) {
+  window.requestAnimationFrame(callback);
+}
+
 // build/dev/javascript/components/components.mjs
 function init2(_) {
-  return [new Model(false, false, false, false), none()];
+  return [
+    new Model(
+      new Transition(
+        new Entering(),
+        false,
+        false,
+        new TransitionClasses(
+          "transition ease-out duration-300",
+          "opacity-0 translate-y-1",
+          "opacity-100 translate-y-0"
+        ),
+        new TransitionClasses(
+          "transition ease-in duration-150",
+          "opacity-100 translate-y-0",
+          "opacity-0 translate-y-1"
+        )
+      )
+    ),
+    none()
+  ];
 }
 function start_transition() {
   return from2(
     (dispatch) => {
-      let _pipe = new TransitionStarted();
-      return dispatch(_pipe);
+      return requestAnimationFrame(
+        (_) => {
+          let _pipe = new TransitionStarted();
+          return dispatch(_pipe);
+        }
+      );
     }
   );
 }
 function update2(model, msg) {
   if (msg instanceof UserClickedProducts) {
-    println("User Clicked Products");
-    return [model.withFields({ is_entering: true }), start_transition()];
+    let $ = model.product_transition;
+    if ($ instanceof Transition && $.direction instanceof Entering) {
+      return [
+        model.withFields({
+          product_transition: model.product_transition.withFields({
+            direction: new Leaving()
+          })
+        }),
+        start_transition()
+      ];
+    } else {
+      return [
+        model.withFields({
+          product_transition: model.product_transition.withFields({
+            direction: new Entering()
+          })
+        }),
+        start_transition()
+      ];
+    }
   } else {
-    return [model.withFields({ entered: true }), none()];
+    return [
+      model.withFields({
+        product_transition: model.product_transition.withFields({
+          transitioning: true
+        })
+      }),
+      none()
+    ];
   }
 }
 function view(model) {
