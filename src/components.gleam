@@ -1,5 +1,6 @@
 import components/types.{
-  type Model, type Msg, Model, TransitionStarted, UserClickedProducts,
+  type Model, type Msg, Entering, Leaving, Model, TransitionStarted,
+  TransitionState, UserClickedProducts,
 }
 import components/ui
 import components/window
@@ -17,27 +18,31 @@ pub fn main() {
 }
 
 fn init(_flags) -> #(Model, Effect(Msg)) {
-  #(Model(product_transition: types.TransitionState()), effect.none())
+  #(
+    Model(product_transition: TransitionState(
+      direction: Leaving,
+      complete: False,
+    )),
+    effect.none(),
+  )
 }
 
 pub fn update(model: Model, msg: Msg) -> #(Model, Effect(Msg)) {
   case msg {
     UserClickedProducts ->
       case model.product_transition {
-        types.Transition(direction: types.Entering, ..) -> #(
+        TransitionState(direction: Entering, ..) -> #(
           Model(
-            ..model,
-            product_transition: types.Transition(
+            product_transition: TransitionState(
               ..model.product_transition,
               direction: types.Leaving,
             ),
           ),
           start_transition(),
         )
-        types.Transition(direction: types.Leaving, ..) -> #(
+        TransitionState(direction: types.Leaving, ..) -> #(
           Model(
-            ..model,
-            product_transition: types.Transition(
+            product_transition: TransitionState(
               ..model.product_transition,
               direction: types.Entering,
             ),
@@ -48,10 +53,9 @@ pub fn update(model: Model, msg: Msg) -> #(Model, Effect(Msg)) {
     TransitionStarted -> {
       #(
         Model(
-          ..model,
-          product_transition: types.Transition(
+          product_transition: TransitionState(
             ..model.product_transition,
-            transitioning: True,
+            complete: True,
           ),
         ),
         effect.none(),

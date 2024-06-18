@@ -1,5 +1,5 @@
 pub type Model {
-  Model(product_transition: Transition)
+  Model(product_transition: TransitionState)
 }
 
 pub type Msg {
@@ -20,7 +20,7 @@ pub type TransitionDirection {
   Leaving
 }
 
-pub fn get_classes(transition: Transition, state: TransitionState) {
+pub fn apply_transition(transition: Transition, state: TransitionState) {
   case state {
     TransitionState(direction: Entering, ..) ->
       case state.complete {

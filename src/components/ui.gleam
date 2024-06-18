@@ -1,5 +1,7 @@
 import components/logos
-import components/types.{type Model}
+import components/types.{
+  type Model, type TransitionState, Transition, apply_transition,
+}
 import lustre/attribute.{alt, attribute, class, href, src, style, type_}
 import lustre/element.{text}
 import lustre/element/html.{a, button, div, img, p, span}
@@ -95,9 +97,9 @@ pub fn analytics_text() {
   ])
 }
 
-pub fn product_flyout(state: types.TransitionState) {
-  let transition =
-    types.Transition(
+pub fn product_flyout(state: TransitionState) {
+  let classes =
+    Transition(
       enter: #(
         "transition ease-out duration-300",
         "opacity-0 translate-y-1",
@@ -109,7 +111,7 @@ pub fn product_flyout(state: types.TransitionState) {
         "opacity-0 translate-y-1",
       ),
     )
-  let classes = types.get_classes(transition, state)
+    |> apply_transition(state)
   div(
     [
       class(classes),
