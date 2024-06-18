@@ -17,24 +17,7 @@ pub fn main() {
 }
 
 fn init(_flags) -> #(Model, Effect(Msg)) {
-  #(
-    Model(product_transition: types.Transition(
-      direction: types.Entering,
-      transitioning: False,
-      complete: False,
-      enter_classes: types.TransitionClasses(
-        all: "transition ease-out duration-300",
-        from: "opacity-0 translate-y-1",
-        to: "opacity-100 translate-y-0",
-      ),
-      leave_classes: types.TransitionClasses(
-        all: "transition ease-in duration-150",
-        from: "opacity-100 translate-y-0",
-        to: "opacity-0 translate-y-1",
-      ),
-    )),
-    effect.none(),
-  )
+  #(Model(product_transition: types.TransitionState()), effect.none())
 }
 
 pub fn update(model: Model, msg: Msg) -> #(Model, Effect(Msg)) {

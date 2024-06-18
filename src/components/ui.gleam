@@ -95,8 +95,21 @@ pub fn analytics_text() {
   ])
 }
 
-pub fn product_flyout(transition: types.Transition) {
-  let classes = types.get_classes(transition)
+pub fn product_flyout(state: types.TransitionState) {
+  let transition =
+    types.Transition(
+      enter: #(
+        "transition ease-out duration-300",
+        "opacity-0 translate-y-1",
+        "opacity-100 translate-y-0",
+      ),
+      leave: #(
+        "transition ease-in duration-150",
+        "opacity-100 translate-y-0",
+        "opacity-0 translate-y-1",
+      ),
+    )
+  let classes = types.get_classes(transition, state)
   div(
     [
       class(classes),
